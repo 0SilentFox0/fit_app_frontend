@@ -15,6 +15,7 @@ import { AppNavigator } from "./src/navigation/AppNavigator";
 import { AccountProvider, useAccount } from "./src/contexts/AccountContext";
 import { apiService } from "./src/services/api";
 import { useTheme } from "./src/ThemeProvider";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 type AccountType = "client" | "admin";
 
@@ -47,7 +48,7 @@ const AccountSelector: React.FC = () => {
           color={colors.mutedForeground}
         />
       </TouchableOpacity>
-
+      <SpeedInsights />
       <Modal
         visible={showModal}
         transparent={true}
