@@ -1,1 +1,0 @@
-export { TrainerCard } from './TrainerCard';

@@ -12,30 +12,42 @@ import { useAuth } from "../hooks/useAuth";
 import { ScreenWrapper, Input, Button, Divider } from "../components";
 import { colors, spacing } from "../theme";
 
-interface LoginFormData {
+interface SignUpFormData {
   email: string;
   password: string;
+  confirmPassword: string;
 }
 
-const LoginScreen: React.FC = () => {
-  const { signIn, signInWithGoogle, loading } = useAuth();
-  const [formData, setFormData] = useState<LoginFormData>({
+const SignUpScreen: React.FC = () => {
+  const { signUp, signInWithGoogle, loading } = useAuth();
+  const [formData, setFormData] = useState<SignUpFormData>({
     email: "",
     password: "",
+    confirmPassword: "",
   });
 
-  const handleInputChange = (field: keyof LoginFormData, value: string) => {
+  const handleInputChange = (field: keyof SignUpFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSignIn = async () => {
-    if (!formData.email || !formData.password) {
+  const handleSignUp = async () => {
+    if (!formData.email || !formData.password || !formData.confirmPassword) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
+    if (formData.password !== formData.confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      Alert.alert("Error", "Password must be at least 6 characters");
+      return;
+    }
+
     try {
-      await signIn(formData.email, formData.password);
+      await signUp(formData.email, formData.password);
     } catch (error: any) {
       Alert.alert("Error", error.message);
     }
@@ -61,8 +73,8 @@ const LoginScreen: React.FC = () => {
         >
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>Welcome Back</Text>
-              <Text style={styles.subtitle}>Sign in to your account</Text>
+              <Text style={styles.title}>Create Account</Text>
+              <Text style={styles.subtitle}>Sign up to get started</Text>
             </View>
 
             <View style={styles.form}>
@@ -87,16 +99,25 @@ const LoginScreen: React.FC = () => {
                 autoCorrect={false}
               />
 
-              <View style={styles.forgotPassword}>
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </View>
+              <Input
+                label="Confirm Password"
+                value={formData.confirmPassword}
+                onChangeText={(value) =>
+                  handleInputChange("confirmPassword", value)
+                }
+                placeholder="Confirm your password"
+                secureTextEntry
+                showPasswordToggle
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
 
               <Button
-                title="Sign In"
-                onPress={handleSignIn}
+                title="Sign Up"
+                onPress={handleSignUp}
                 loading={loading}
                 disabled={loading}
-                style={styles.signInButton}
+                style={styles.signUpButton}
               />
 
               <Divider text="OR" />
@@ -111,8 +132,8 @@ const LoginScreen: React.FC = () => {
             </View>
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
-              <Text style={styles.footerLink}>Sign Up</Text>
+              <Text style={styles.footerText}>Already have an account? </Text>
+              <Text style={styles.footerLink}>Sign In</Text>
             </View>
           </View>
         </ScrollView>
@@ -156,16 +177,7 @@ const styles = StyleSheet.create({
   form: {
     flex: 1,
   },
-  forgotPassword: {
-    alignSelf: "flex-end",
-    marginBottom: spacing.xl,
-  },
-  forgotPasswordText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: colors.primary,
-  },
-  signInButton: {
+  signUpButton: {
     marginBottom: spacing.lg,
   },
   footer: {
@@ -186,4 +198,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default SignUpScreen;

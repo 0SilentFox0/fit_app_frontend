@@ -2,287 +2,249 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
-  TouchableOpacity,
-  Dimensions,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "../ThemeProvider";
-import { Card, Badge, Progress } from "../components/ui";
-import { mockProgressData } from "../mocks";
-import { ProgressData } from "../types";
+import { useAuth } from "../hooks/useAuth";
+import { ScreenWrapper, Card, Button } from "../components";
+import { colors, spacing } from "../theme";
 
-const { width } = Dimensions.get("window");
+interface ProfileScreenProps {
+  navigation: {
+    navigate: (screen: string) => void;
+  };
+}
 
-export const ProfileScreen: React.FC = () => {
-  const { colors, spacing } = useTheme();
-  const [selectedTab, setSelectedTab] = useState("profile");
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
+  const { user, signOut, sendEmailVerification, loading, error } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const user = {
-    name: "Alex Johnson",
-    email: "alex.johnson@email.com",
-    level: 15,
-    xp: 2840,
-    nextLevelXp: 3000,
-    joinDate: "March 2024",
-    totalWorkouts: 47,
-    totalHours: 89,
-    streak: 12,
-    achievements: 8,
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error: any) {
+      console.error("Sign out error:", error);
+    }
   };
 
-  const stats = [
-    { label: "Workouts", value: user.totalWorkouts, icon: "fitness" },
-    { label: "Hours", value: user.totalHours, icon: "time" },
-    { label: "Streak", value: user.streak, icon: "flame" },
-    { label: "Achievements", value: user.achievements, icon: "trophy" },
-  ];
+  const handleResendVerification = async () => {
+    try {
+      await sendEmailVerification();
+    } catch (error: any) {
+      console.error("Resend verification error:", error);
+    }
+  };
 
-  const menuItems = [
-    { title: "Edit Profile", icon: "person-outline", action: () => {} },
-    { title: "Settings", icon: "settings-outline", action: () => {} },
-    { title: "Notifications", icon: "notifications-outline", action: () => {} },
-    { title: "Privacy", icon: "shield-outline", action: () => {} },
-    { title: "Help & Support", icon: "help-circle-outline", action: () => {} },
-    { title: "About", icon: "information-circle-outline", action: () => {} },
-    {
-      title: "Logout",
-      icon: "log-out-outline",
-      action: () => {},
-      isDestructive: true,
-    },
-  ];
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate refresh delay
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
-  const progressPercentage = (user.xp / user.nextLevelXp) * 100;
+  if (loading) {
+    return (
+      <ScreenWrapper>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </ScreenWrapper>
+    );
+  }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      {/* Header */}
-      <Card style={styles.headerCard}>
-        <View style={styles.headerContent}>
-          <View
-            style={[
-              styles.avatarContainer,
-              { backgroundColor: colors.primary },
-            ]}
-          >
-            <Text
-              style={[styles.avatarText, { color: colors.primaryForeground }]}
-            >
-              AJ
-            </Text>
+    <ScreenWrapper>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Profile</Text>
+            <Text style={styles.subtitle}>Manage your account settings</Text>
           </View>
-          <View style={styles.userInfo}>
-            <Text style={[styles.userName, { color: colors.foreground }]}>
-              {user.name}
-            </Text>
-            <Text style={[styles.userEmail, { color: colors.mutedForeground }]}>
-              {user.email}
-            </Text>
-            <View style={styles.levelContainer}>
-              <Badge variant="outline" size="sm">
-                Level {user.level}
-              </Badge>
-            </View>
-          </View>
-        </View>
-      </Card>
 
-      {/* XP Progress */}
-      <Card style={styles.xpContainer}>
-        <View style={styles.xpHeader}>
-          <Text style={[styles.xpTitle, { color: colors.foreground }]}>
-            Experience Points
-          </Text>
-          <Text style={[styles.xpValue, { color: colors.primary }]}>
-            {user.xp} / {user.nextLevelXp} XP
-          </Text>
-        </View>
-        <Progress
-          value={progressPercentage}
-          variant="success"
-          style={styles.progressBar}
-        />
-      </Card>
-
-      {/* Stats Grid */}
-      <View style={styles.statsContainer}>
-        {stats.map((stat, index) => (
-          <Card key={index} style={styles.statCard}>
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: colors.primary + "33" },
-              ]}
-            >
-              <Ionicons
-                name={stat.icon as any}
-                size={24}
-                color={colors.primary}
-              />
+          <Card style={styles.profileCard}>
+            <View style={styles.profileInfo}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {user?.email?.charAt(0).toUpperCase() || "U"}
+                </Text>
+              </View>
+              <View style={styles.userInfo}>
+                <Text style={styles.userEmail}>{user?.email}</Text>
+                <View style={styles.verificationStatus}>
+                  <Text
+                    style={[
+                      styles.statusText,
+                      {
+                        color: user?.emailVerified
+                          ? colors.success
+                          : colors.warning,
+                      },
+                    ]}
+                  >
+                    {user?.emailVerified ? "✓ Verified" : "⚠ Unverified"}
+                  </Text>
+                </View>
+              </View>
             </View>
-            <Text style={[styles.statValue, { color: colors.foreground }]}>
-              {stat.value}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
-              {stat.label}
-            </Text>
           </Card>
-        ))}
-      </View>
 
-      {/* Menu Items */}
-      <View style={styles.menuContainer}>
-        {menuItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.menuItem, { backgroundColor: colors.card }]}
-            onPress={item.action}
-          >
-            <View style={styles.menuItemContent}>
-              <Ionicons
-                name={item.icon as any}
-                size={20}
-                color={
-                  item.isDestructive ? colors.destructive : colors.foreground
-                }
+          <Card style={styles.actionsCard}>
+            <Text style={styles.sectionTitle}>Account Actions</Text>
+
+            {!user?.emailVerified && (
+              <Button
+                title="Resend Verification Email"
+                onPress={handleResendVerification}
+                variant="secondary"
+                style={styles.actionButton}
               />
-              <Text
-                style={[
-                  styles.menuItemText,
-                  {
-                    color: item.isDestructive
-                      ? colors.destructive
-                      : colors.foreground,
-                  },
-                ]}
-              >
-                {item.title}
-              </Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={colors.mutedForeground}
+            )}
+
+            <Button
+              title="Sign Out"
+              onPress={handleSignOut}
+              variant="danger"
+              style={styles.actionButton}
             />
-          </TouchableOpacity>
-        ))}
-      </View>
-    </ScrollView>
+          </Card>
+
+          {error && (
+            <Card style={styles.errorCard}>
+              <Text style={styles.errorText}>{error}</Text>
+            </Card>
+          )}
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Fitness App v1.0.0</Text>
+          </View>
+        </View>
+      </ScrollView>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
   },
-  headerCard: {
-    margin: 20,
-    marginTop: 60,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: spacing.padding,
   },
-  headerContent: {
+  loadingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginTop: spacing.md,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.padding,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: spacing.xl,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: spacing.sm,
+    lineHeight: 34,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: "400",
+    color: colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  profileCard: {
+    marginBottom: spacing.lg,
+  },
+  profileInfo: {
     flexDirection: "row",
     alignItems: "center",
   },
-  avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 20,
+    marginRight: spacing.md,
   },
   avatarText: {
-    fontSize: 32,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "700",
+    color: colors.text,
   },
   userInfo: {
     flex: 1,
   },
-  userName: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
   userEmail: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  levelContainer: {
-    alignSelf: "flex-start",
-  },
-  xpContainer: {
-    margin: 20,
-    marginTop: 0,
-  },
-  xpHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  xpTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
+    color: colors.text,
+    marginBottom: spacing.xs,
   },
-  xpValue: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  progressBar: {
-    marginTop: 8,
-  },
-  statsContainer: {
+  verificationStatus: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  statCard: {
-    width: (width - 60) / 2,
     alignItems: "center",
-    marginBottom: 12,
-    marginHorizontal: 6,
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
+  statusText: {
+    fontSize: 14,
     fontWeight: "500",
   },
-  menuContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
+  actionsCard: {
+    marginBottom: spacing.lg,
   },
-  menuItem: {
-    flexDirection: "row",
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: colors.text,
+    marginBottom: spacing.lg,
+  },
+  actionButton: {
+    marginBottom: spacing.md,
+  },
+  errorCard: {
+    backgroundColor: colors.error + "20",
+    borderColor: colors.error,
+    marginBottom: spacing.lg,
+  },
+  errorText: {
+    fontSize: 14,
+    color: colors.error,
+    textAlign: "center",
+  },
+  footer: {
     alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    marginTop: spacing.xl,
   },
-  menuItemContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  menuItemText: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginLeft: 12,
+  footerText: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
 });
+
+export default ProfileScreen;

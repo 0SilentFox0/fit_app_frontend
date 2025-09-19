@@ -1,95 +1,92 @@
 import React from "react";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "../ThemeProvider";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { useAuth } from "../hooks/useAuth";
 
 // Import screens
-import { HomeScreen } from "../screens/client/HomeScreen";
-import { WorkoutsScreen } from "../screens/client/WorkoutsScreen";
-import { ChatScreen } from "../screens/ChatScreen";
-import { BookingsScreen } from "../screens/client/BookingsScreen";
-import { ProgressScreen } from "../screens/client/ProgressScreen";
-import { ProfileScreen } from "../screens/ProfileScreen";
-import { TrainingHistoryScreen } from "../screens/client/TrainingHistoryScreen";
-import { TrainerDashboardScreen } from "../screens/trainer/TrainerDashboardScreen";
-import { TrainerCalendarScreen } from "../screens/trainer/TrainerCalendarScreen";
-import { ClientsScreen } from "../screens/ClientsScreen";
-import { TrainerSlotsScreen } from "../screens/client/TrainerSlotsScreen";
+import LoginScreen from "../screens/LoginScreen";
+import SignUpScreen from "../screens/SignUpScreen";
+import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
+import EmailVerificationScreen from "../screens/EmailVerificationScreen";
+import LoadingScreen from "../components/LoadingScreen";
 
-const Tab = createBottomTabNavigator();
+// Import navigators
+import MainTabNavigator from "./MainTabNavigator";
 
-type AccountType = "client" | "admin";
+export type RootStackParamList = {
+  Login: undefined;
+  SignUp: undefined;
+  ForgotPassword: undefined;
+  EmailVerification: undefined;
+  Main: undefined;
+};
 
-interface AppNavigatorProps {
-  accountType: AccountType;
-}
+const Stack = createStackNavigator<RootStackParamList>();
 
-export const AppNavigator: React.FC<AppNavigatorProps> = ({ accountType }) => {
-  const { colors } = useTheme();
+const AppNavigator: React.FC = () => {
+  const { user, loading, pendingVerificationEmail } = useAuth();
 
-  const getScreens = () => {
-    if (accountType === "admin") {
-      return [
-        {
-          name: "Dashboard",
-          component: TrainerDashboardScreen,
-          icon: "people",
-        },
-        {
-          name: "Calendar",
-          component: TrainerCalendarScreen,
-          icon: "calendar",
-        },
-        { name: "Clients", component: ClientsScreen, icon: "person" },
-        { name: "Profile", component: ProfileScreen, icon: "person-circle" },
-      ];
-    } else {
-      return [
-        { name: "Home", component: HomeScreen, icon: "home" },
-        { name: "Workouts", component: WorkoutsScreen, icon: "fitness" },
-        { name: "Book Slots", component: TrainerSlotsScreen, icon: "calendar" },
-        { name: "Chat", component: ChatScreen, icon: "chatbubbles" },
-        { name: "Progress", component: ProgressScreen, icon: "analytics" },
-        { name: "History", component: TrainingHistoryScreen, icon: "time" },
-        { name: "Profile", component: ProfileScreen, icon: "person" },
-      ];
-    }
-  };
+  console.log("🟡 APP NAVIGATOR: Render triggered");
+  console.log(
+    "🟡 APP NAVIGATOR: User:",
+    user ? `${user.email} (verified: ${user.emailVerified})` : "null"
+  );
+  console.log("🟡 APP NAVIGATOR: Loading:", loading);
+  console.log(
+    "🟡 APP NAVIGATOR: Pending verification:",
+    pendingVerificationEmail
+  );
 
-  const screens = getScreens();
+  if (loading) {
+    console.log("🟡 APP NAVIGATOR: Showing loading screen");
+    return <LoadingScreen />;
+  }
 
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          const screen = screens.find((s) => s.name === route.name);
-          const iconName = focused
-            ? `${screen?.icon}`
-            : `${screen?.icon}-outline`;
-          return <Ionicons name={iconName as any} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
-        },
-        headerShown: false,
-      })}
-    >
-      {screens.map((screen) => (
-        <Tab.Screen
-          key={screen.name}
-          name={screen.name}
-          component={screen.component}
-          options={{
-            tabBarLabel: screen.name,
-          }}
-        />
-      ))}
-    </Tab.Navigator>
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        {!user
+          ? // Auth screens
+            (() => {
+              console.log("🟡 APP NAVIGATOR: Rendering auth screens (no user)");
+              return (
+                <>
+                  <Stack.Screen name="Login" component={LoginScreen} />
+                  <Stack.Screen name="SignUp" component={SignUpScreen} />
+                  <Stack.Screen
+                    name="ForgotPassword"
+                    component={ForgotPasswordScreen}
+                  />
+                </>
+              );
+            })()
+          : pendingVerificationEmail
+          ? // Email verification screen
+            (() => {
+              console.log(
+                "🟡 APP NAVIGATOR: Rendering email verification screen"
+              );
+              return (
+                <Stack.Screen
+                  name="EmailVerification"
+                  component={EmailVerificationScreen}
+                />
+              );
+            })()
+          : // Main app with tab navigation
+            (() => {
+              console.log(
+                "🟡 APP NAVIGATOR: Rendering main app (user authenticated)"
+              );
+              return <Stack.Screen name="Main" component={MainTabNavigator} />;
+            })()}
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
+
+export default AppNavigator;

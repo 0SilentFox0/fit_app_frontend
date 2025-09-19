@@ -1,0 +1,10 @@
+export { default as LoginScreen } from "./LoginScreen";
+export { default as SignUpScreen } from "./SignUpScreen";
+export { default as ForgotPasswordScreen } from "./ForgotPasswordScreen";
+export { default as EmailVerificationScreen } from "./EmailVerificationScreen";
+export { default as ProfileScreen } from "./ProfileScreen";
+export { default as DashboardScreen } from "./DashboardScreen";
+export { default as ExercisesScreen } from "./ExercisesScreen";
+export { default as MuscleGroupsScreen } from "./MuscleGroupsScreen";
+export { default as ExercisesListScreen } from "./ExercisesListScreen";
+export { default as ExerciseDetailsScreen } from "./ExerciseDetailsScreen";
