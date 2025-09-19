@@ -8,11 +8,19 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build": "expo export",
-    "build:web": "expo export --platform web",
+    "build:web": "expo export --platform web --output-dir dist",
+    "build:android": "eas build --platform android",
+    "build:ios": "eas build --platform ios",
+    "build:all": "eas build --platform all",
+    "prebuild:android": "expo prebuild --platform android",
+    "prebuild:ios": "expo prebuild --platform ios",
+    "prebuild:all": "expo prebuild",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "deploy:web": "npm run build:web && vercel --prod",
+    "deploy:mobile": "eas build --platform all"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
