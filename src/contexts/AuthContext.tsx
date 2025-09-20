@@ -17,7 +17,6 @@ import {
   signInWithCredential,
 } from "firebase/auth";
 import { Platform, Alert } from "react-native";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { auth } from "../config/firebase";
 import { AuthContextType, AuthState, AuthUser } from "../types/auth";
 
@@ -35,45 +34,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     pendingVerificationEmail: false,
   });
 
-  // Configure Google Sign-In
-  useEffect(() => {
-    if (Platform.OS !== "web") {
-      GoogleSignin.configure({
-        webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
-        offlineAccess: true,
-      });
-    }
-  }, []);
+  // Configure Google Sign-In (disabled for Expo Go compatibility)
+  // useEffect(() => {
+  //   if (Platform.OS !== "web") {
+  //     // Dynamically import GoogleSignin to avoid TurboModule error in Expo Go
+  //     import("@react-native-google-signin/google-signin")
+  //       .then(({ GoogleSignin }) => {
+  //         GoogleSignin.configure({
+  //           webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
+  //           offlineAccess: true,
+  //         });
+  //       })
+  //       .catch((error) => {
+  //         console.warn("Google Sign-In not available:", error);
+  //       });
+  //   }
+  // }, []);
 
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log("🟢 AUTH STATE CHANGE: Triggered");
-      console.log(
-        "🟢 AUTH STATE CHANGE: User:",
-        user ? `${user.email} (verified: ${user.emailVerified})` : "null"
-      );
-      console.log("🟢 AUTH STATE CHANGE: Timestamp:", new Date().toISOString());
-
       if (user) {
         const authUser = user as AuthUser;
-        console.log("🟢 AUTH STATE CHANGE: Setting user as signed in");
         setState({
           user: authUser,
           loading: false,
           error: null,
           pendingVerificationEmail: !authUser.emailVerified,
         });
-        console.log("🟢 AUTH STATE CHANGE: User state updated - signed in");
       } else {
-        console.log("🟢 AUTH STATE CHANGE: Setting user as signed out");
         setState({
           user: null,
           loading: false,
           error: null,
           pendingVerificationEmail: false,
         });
-        console.log("🟢 AUTH STATE CHANGE: User state updated - signed out");
       }
     });
 
@@ -156,10 +151,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const provider = new GoogleAuthProvider();
         await signInWithPopup(auth, provider);
       } else {
-        await GoogleSignin.hasPlayServices();
-        const { idToken } = await GoogleSignin.signIn();
-        const googleCredential = GoogleAuthProvider.credential(idToken);
-        await signInWithCredential(auth, googleCredential);
+        // Try to use Google Sign-In on mobile
+        try {
+          const { GoogleSignin } = await import(
+            "@react-native-google-signin/google-signin"
+          );
+          await GoogleSignin.hasPlayServices();
+          const { idToken } = await GoogleSignin.signIn();
+          const googleCredential = GoogleAuthProvider.credential(idToken);
+          await signInWithCredential(auth, googleCredential);
+        } catch (importError) {
+          // If Google Sign-In is not available, show a helpful message
+          throw new Error(
+            "Google Sign-In requires a development build. Please use email/password authentication or build the app with EAS Build."
+          );
+        }
       }
 
       setState((prev) => ({
@@ -179,43 +185,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async (): Promise<void> => {
     try {
-      console.log("🔴 AUTH CONTEXT: Starting sign out process...");
-      console.log(
-        "🔴 AUTH CONTEXT: Current user before sign out:",
-        state.user?.email || "No user"
-      );
-      console.log("🔴 AUTH CONTEXT: Platform:", Platform.OS);
-
       setState((prev) => ({ ...prev, loading: true, error: null }));
-      console.log("🔴 AUTH CONTEXT: Set loading to true");
 
-      if (Platform.OS !== "web") {
-        console.log("🔴 AUTH CONTEXT: Signing out from Google...");
-        await GoogleSignin.signOut();
-        console.log("🔴 AUTH CONTEXT: Google sign out completed");
-      } else {
-        console.log("🔴 AUTH CONTEXT: Skipping Google sign out (web platform)");
-      }
+      // Google Sign-In is disabled in Expo Go, so no need to sign out from Google
 
-      console.log("🔴 AUTH CONTEXT: Signing out from Firebase...");
       await firebaseSignOut(auth);
-      console.log("🔴 AUTH CONTEXT: Firebase sign out completed");
 
       // The auth state change listener should handle the state update
-      // But let's also set it manually as a fallback
-      console.log("🔴 AUTH CONTEXT: Setting state to signed out manually...");
       setState({
         user: null,
         loading: false,
         error: null,
         pendingVerificationEmail: false,
       });
-      console.log("🔴 AUTH CONTEXT: Manual state update completed");
-      console.log("🔴 AUTH CONTEXT: Sign out process completed successfully");
     } catch (error: any) {
-      console.error("🔴 AUTH CONTEXT: Sign out error:", error);
-      console.error("🔴 AUTH CONTEXT: Error message:", error.message);
-      console.error("🔴 AUTH CONTEXT: Error stack:", error.stack);
       setState((prev) => ({
         ...prev,
         loading: false,
@@ -273,6 +256,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const resendVerificationEmail = async (): Promise<void> => {
+    try {
+      if (!auth.currentUser) {
+        throw new Error("No user logged in");
+      }
+
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+
+      await sendEmailVerification(auth.currentUser);
+
+      setState((prev) => ({ ...prev, loading: false }));
+    } catch (error: any) {
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error: error.message || "Failed to resend verification email",
+      }));
+      throw error;
+    }
+  };
+
   const clearError = (): void => {
     setState((prev) => ({ ...prev, error: null }));
   };
@@ -285,6 +289,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signOut,
     resetPassword,
     sendEmailVerification,
+    resendVerificationEmail,
     clearError,
   };
 

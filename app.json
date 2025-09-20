@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fitapp.mobile"
+      "bundleIdentifier": "com.fitapp.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,6 +35,11 @@
         "projectId": "4f1b8213-fc2d-487e-9d01-80e99c280cba"
       }
     },
-    "owner": "silentfox"
+    "owner": "silentfox",
+    "plugins": [
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser"
+    ]
   }
 }

@@ -7,10 +7,12 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import { useAuth } from "../hooks/useAuth";
 import { ScreenWrapper, Input, Button, Divider } from "../components";
 import { colors, spacing } from "../theme";
+import { useNavigation } from "@react-navigation/native";
 
 interface LoginFormData {
   email: string;
@@ -19,6 +21,7 @@ interface LoginFormData {
 
 const LoginScreen: React.FC = () => {
   const { signIn, signInWithGoogle, loading } = useAuth();
+  const navigation = useNavigation();
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
@@ -87,9 +90,12 @@ const LoginScreen: React.FC = () => {
                 autoCorrect={false}
               />
 
-              <View style={styles.forgotPassword}>
+              <TouchableOpacity
+                style={styles.forgotPassword}
+                onPress={() => navigation.navigate("ForgotPassword" as never)}
+              >
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </View>
+              </TouchableOpacity>
 
               <Button
                 title="Sign In"
@@ -112,7 +118,11 @@ const LoginScreen: React.FC = () => {
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Don't have an account? </Text>
-              <Text style={styles.footerLink}>Sign Up</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("SignUp" as never)}
+              >
+                <Text style={styles.footerLink}>Sign Up</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>

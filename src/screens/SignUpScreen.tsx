@@ -7,10 +7,12 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import { useAuth } from "../hooks/useAuth";
 import { ScreenWrapper, Input, Button, Divider } from "../components";
 import { colors, spacing } from "../theme";
+import { useNavigation } from "@react-navigation/native";
 
 interface SignUpFormData {
   email: string;
@@ -20,6 +22,7 @@ interface SignUpFormData {
 
 const SignUpScreen: React.FC = () => {
   const { signUp, signInWithGoogle, loading } = useAuth();
+  const navigation = useNavigation();
   const [formData, setFormData] = useState<SignUpFormData>({
     email: "",
     password: "",
@@ -133,7 +136,11 @@ const SignUpScreen: React.FC = () => {
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account? </Text>
-              <Text style={styles.footerLink}>Sign In</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Login" as never)}
+              >
+                <Text style={styles.footerLink}>Sign In</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
